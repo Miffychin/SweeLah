@@ -8,6 +8,7 @@ import { LiveGridTab } from './components/LiveGridTab';
 import { DriverTab } from './components/DriverTab';
 import { WalletTab } from './components/WalletTab';
 import { ProfileTab } from './components/ProfileTab';
+import { TalkToUsTab } from './components/TalkToUsTab';
 import { BookingConfirmModal } from './components/BookingConfirmModal';
 import { PostRideModal } from './components/PostRideModal';
 import { Toast, ToastData } from './components/Toast';
@@ -21,11 +22,12 @@ import {
   User,
   ShieldCheck,
   Zap,
+  MessageSquare,
 } from 'lucide-react';
 
 export default function App() {
   const [currency, setCurrency] = useState<Currency>('SGD');
-  const [activeTab, setActiveTab] = useState<'book' | 'pass' | 'live' | 'driver' | 'wallet' | 'profile'>('book');
+  const [activeTab, setActiveTab] = useState<'book' | 'pass' | 'live' | 'driver' | 'wallet' | 'profile' | 'talk'>('book');
   const [rides, setRides] = useState<CarpoolRide[]>(INITIAL_RIDES);
   const [hostedRides, setHostedRides] = useState<CarpoolRide[]>([INITIAL_RIDES[1]]);
   const [activeBooking, setActiveBooking] = useState<ActiveBooking>(INITIAL_ACTIVE_BOOKING);
@@ -128,6 +130,7 @@ export default function App() {
     { id: 'driver' as const, label: 'Host Mode', icon: <IdCard className="w-5 h-5 mb-0.5" /> },
     { id: 'wallet' as const, label: 'Wallet', icon: <WalletIcon className="w-5 h-5 mb-0.5" /> },
     { id: 'profile' as const, label: 'Profile', icon: <User className="w-5 h-5 mb-0.5" /> },
+    { id: 'talk' as const, label: 'Talk to Us', icon: <MessageSquare className="w-5 h-5 mb-0.5" /> },
   ];
 
   return (
@@ -214,14 +217,21 @@ export default function App() {
               onToast={showToast}
             />
           )}
+
+          {activeTab === 'talk' && (
+            <TalkToUsTab
+              isMuted={isMuted}
+              onToast={showToast}
+            />
+          )}
         </main>
 
         {/* Bottom Navigation Bar */}
         <nav
           id="app-bottom-nav"
-          className="bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-2 py-2 shrink-0 z-30 shadow-lg"
+          className="bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-1 py-2 shrink-0 z-30 shadow-lg"
         >
-          <div className="grid grid-cols-6 gap-1 text-center">
+          <div className="grid grid-cols-7 gap-0.5 text-center">
             {navItems.map((item) => {
               const isActive = activeTab === item.id;
               return (
@@ -232,7 +242,7 @@ export default function App() {
                     if (!isMuted && !isActive) sound.playTap();
                     setActiveTab(item.id);
                   }}
-                  className={`flex flex-col items-center justify-center py-1 rounded-xl transition-all cursor-pointer ${
+                  className={`flex flex-col items-center justify-center py-1 px-0.5 rounded-xl transition-all cursor-pointer ${
                     isActive
                       ? 'text-emerald-800 font-extrabold scale-105'
                       : 'text-slate-400 hover:text-slate-600 font-medium'
@@ -241,7 +251,9 @@ export default function App() {
                   <div className={`transition-transform ${isActive ? 'scale-110 text-emerald-700' : ''}`}>
                     {item.icon}
                   </div>
-                  <span className="text-[9px] tracking-tight">{item.label}</span>
+                  <span className="text-[8px] sm:text-[9px] tracking-tight whitespace-nowrap leading-tight mt-0.5">
+                    {item.label}
+                  </span>
                 </button>
               );
             })}
