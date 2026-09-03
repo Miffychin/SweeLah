@@ -1,0 +1,6 @@
+{
+  "name": "Swee Lah",
+  "description": "Swee Lah - SG ↔ JB cross-border carpool & commute platform with live causeway traffic feeds, customs QR auto-pass, and host ride sharing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
