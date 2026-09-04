@@ -235,7 +235,7 @@ export const TalkToUsTab: React.FC<TalkToUsTabProps> = ({ isMuted, onToast }) =>
       setJustSubmittedId(savedItem.id);
 
       if (!isMuted) sound.playSuccess();
-      onToast('Feedback successfully saved and published permanently to the board!', 'success');
+      onToast('Comment saved in sweelah.app and published to the board!', 'success');
 
       // Remove "just submitted" highlight after 5 seconds
       setTimeout(() => {
@@ -341,11 +341,11 @@ export const TalkToUsTab: React.FC<TalkToUsTabProps> = ({ isMuted, onToast }) =>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-black text-slate-800 tracking-tight">Talk to Us</h2>
                 <span className="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-emerald-700" /> Permanent Board
+                  <Sparkles className="w-3 h-3 text-emerald-700" /> sweelah.app
                 </span>
               </div>
               <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Share feedback, request carpool routes, or ask queue tips. Stored permanently on the app!
+                Share feedback, request carpool routes, or ask queue tips. All comments are saved in sweelah.app!
               </p>
             </div>
           </div>
@@ -366,7 +366,7 @@ export const TalkToUsTab: React.FC<TalkToUsTabProps> = ({ isMuted, onToast }) =>
               }`}
             >
               <MessageCircle className="w-3.5 h-3.5" />
-              <span>In-App Board ({feedbackList.length})</span>
+              <span>sweelah.app Comments ({feedbackList.length})</span>
             </button>
             <button
               type="button"
@@ -392,7 +392,7 @@ export const TalkToUsTab: React.FC<TalkToUsTabProps> = ({ isMuted, onToast }) =>
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
             <span className="font-medium">
-              Permanent Storage Active: Comments stay permanently saved and viewable across sessions.
+              Permanent Storage Active: Comments stay permanently saved in sweelah.app across sessions.
             </span>
           </div>
           <span className="text-[10px] font-mono font-bold bg-white text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md shadow-2xs">
@@ -544,7 +544,7 @@ export const TalkToUsTab: React.FC<TalkToUsTabProps> = ({ isMuted, onToast }) =>
               {/* Submit Action Button */}
               <div className="pt-1 flex items-center justify-between">
                 <p className="text-[10px] text-slate-400 hidden sm:block">
-                  Press <strong>Post Feedback</strong> to store permanently on the site/app.
+                  Press <strong>Post Comment</strong> to save permanently in sweelah.app.
                 </p>
                 <button
                   type="submit"
@@ -553,7 +553,7 @@ export const TalkToUsTab: React.FC<TalkToUsTabProps> = ({ isMuted, onToast }) =>
                   className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md shadow-emerald-700/20 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>{isSubmitting ? 'Saving to Board...' : 'Post Feedback Permanently'}</span>
+                  <span>{isSubmitting ? 'Saving to sweelah.app...' : 'Post Comment to sweelah.app'}</span>
                 </button>
               </div>
             </form>
@@ -631,23 +631,35 @@ export const TalkToUsTab: React.FC<TalkToUsTabProps> = ({ isMuted, onToast }) =>
               ----------------------------------------------------------------- */}
           <div className="space-y-3">
             {filteredAndSortedList.length === 0 ? (
-              <div className="bg-white p-8 rounded-3xl border border-slate-200 text-center space-y-2">
-                <MessageSquare className="w-8 h-8 text-slate-300 mx-auto" />
-                <p className="text-xs font-bold text-slate-700">No feedback matching your filter</p>
-                <p className="text-[11px] text-slate-400">
-                  Try clearing your search query or post the very first feedback above!
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedCategory('all');
-                    setSearchQuery('');
-                  }}
-                  className="text-xs text-emerald-700 font-bold hover:underline mt-2 cursor-pointer"
-                >
-                  Reset filters
-                </button>
-              </div>
+              feedbackList.length === 0 ? (
+                <div className="bg-white p-8 rounded-3xl border border-slate-200 text-center space-y-2.5">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-1">
+                    <MessageSquare className="w-6 h-6" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-800">No comments posted yet on sweelah.app</p>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                    Be the first to share a carpool route request, Causeway & Tuas queue tip, or app suggestion above! All comments are saved directly in sweelah.app.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-white p-8 rounded-3xl border border-slate-200 text-center space-y-2">
+                  <MessageSquare className="w-8 h-8 text-slate-300 mx-auto" />
+                  <p className="text-xs font-bold text-slate-700">No feedback matching your filter</p>
+                  <p className="text-[11px] text-slate-400">
+                    Try clearing your search query or category filter!
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory('all');
+                      setSearchQuery('');
+                    }}
+                    className="text-xs text-emerald-700 font-bold hover:underline mt-2 cursor-pointer"
+                  >
+                    Reset filters
+                  </button>
+                </div>
+              )
             ) : (
               filteredAndSortedList.map((item) => {
                 const config = CATEGORY_CONFIG[item.category] || CATEGORY_CONFIG.general_feedback;

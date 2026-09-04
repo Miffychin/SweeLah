@@ -1,6 +1,7 @@
 import { CommunityFeedbackItem, FeedbackCategory, FeedbackReply } from '../types';
 
-export const FEEDBACK_STORAGE_KEY = 'sweelah_permanent_feedback_posts_v1';
+export const FEEDBACK_STORAGE_KEY = 'sweelah_app_comments_v1';
+export const LEGACY_STORAGE_KEY = 'sweelah_permanent_feedback_posts_v1';
 
 export const CATEGORY_CONFIG: Record<
   FeedbackCategory,
@@ -38,169 +39,104 @@ export const CATEGORY_CONFIG: Record<
   },
 };
 
-export const INITIAL_FEEDBACK_POSTS: CommunityFeedbackItem[] = [
-  {
-    id: 'fb-pin-1',
-    author: 'Swee Lah Community Team',
-    role: 'Swee Lah Team',
-    avatarColor: 'bg-emerald-600',
-    category: 'general_feedback',
-    categoryLabel: '💬 General Commuter Chat & Feedback',
-    content:
-      'Welcome to the official Swee Lah SG ⇄ JB Commuter Community Board! Post your carpool route requests, live Causeway & Tuas checkpoint tips, RTS shuttle ideas, or app feedback here. All comments are stored permanently on the app and reviewed directly by our founding team.',
-    timestamp: 'Pinned Notice',
-    createdAt: Date.now() - 86400000 * 2,
-    upvotes: 48,
-    hasUpvoted: false,
-    isPinned: true,
-    replies: [
-      {
-        id: 'rep-1-1',
-        author: 'Kenji Tan',
-        role: 'Daily Commuter',
-        text: 'Super glad to see an in-app community feed! The live queue cam tracker has already saved me 40 mins at Woodlands.',
-        timestamp: 'Yesterday at 8:15 PM',
-        createdAt: Date.now() - 86400000,
-      },
-      {
-        id: 'rep-1-2',
-        author: 'Hazim Driver',
-        role: 'Verified Driver',
-        text: 'Happy to answer any questions about VEP tags or Touch n Go card topups for newer cross-border drivers.',
-        timestamp: 'Today at 9:30 AM',
-        createdAt: Date.now() - 3600000 * 4,
-      },
-    ],
-  },
-  {
-    id: 'fb-2',
-    author: 'Derrick Lim (Bishan ➔ Austin)',
-    role: 'Daily Commuter',
-    avatarColor: 'bg-blue-600',
-    category: 'carpool_route',
-    categoryLabel: '🚗 Carpool Route Requests',
-    routeTag: 'Bishan MRT ⇄ Austin Heights JB',
-    content:
-      'Seeking regular weekday carpool buddies! Departing Bishan MRT at 6:45 PM on Fridays towards Austin Heights / Mount Austin JB, and returning Monday mornings at 6:00 AM. Comfortable 7-seater MPV with space for weekend luggage. Anyone keen to share fuel & toll costs?',
-    timestamp: '2 hours ago',
-    createdAt: Date.now() - 7200000,
-    upvotes: 19,
-    hasUpvoted: false,
-    replies: [
-      {
-        id: 'rep-2-1',
-        author: 'Serene Goh',
-        role: 'Commuter',
-        text: 'I commute from Ang Mo Kio every Friday evening! Would love to hop on this route. Let me book through the app.',
-        timestamp: '1 hour ago',
-        createdAt: Date.now() - 3600000,
-      },
-    ],
-  },
-  {
-    id: 'fb-3',
-    author: 'Marcus Chia',
-    role: 'Verified Driver',
-    avatarColor: 'bg-amber-600',
-    category: 'checkpoint_tips',
-    categoryLabel: '🛂 Causeway & Tuas Queue Tips',
-    routeTag: 'Woodlands Crossing (SG ➔ MY)',
-    content:
-      'LTA OneMotoring checkpoint tip for tonight: Concourse Departure Bay lanes 3-5 are moving significantly smoother than the outer bus ramp lanes. Also make sure to save your MDAC barcode as a screenshot in Photos in case mobile 5G roaming lags right at the immigration counter.',
-    timestamp: '3 hours ago',
-    createdAt: Date.now() - 10800000,
-    upvotes: 34,
-    hasUpvoted: false,
-    replies: [
-      {
-        id: 'rep-3-1',
-        author: 'Wayne Khoo',
-        role: 'Daily Commuter',
-        text: 'Solid tip on the MDAC screenshot! Saved me twice when roaming took a minute to reconnect.',
-        timestamp: '2 hours ago',
-        createdAt: Date.now() - 7200000,
-      },
-    ],
-  },
-  {
-    id: 'fb-4',
-    author: 'Priya Nair (Changi Biotech)',
-    role: 'Commuter',
-    avatarColor: 'bg-purple-600',
-    category: 'rts_updates',
-    categoryLabel: '⚡ RTS Link Updates',
-    routeTag: 'Woodlands North ⇄ Changi Airport T3',
-    content:
-      'Suggestion for the RTS Link 2026 connector: Could Swee Lah add dedicated morning carpool syncs specifically matching the early 6:00 AM - 6:30 AM RTS train arrivals from Bukit Chagar to Changi Airport Business Park?',
-    timestamp: '5 hours ago',
-    createdAt: Date.now() - 18000000,
-    upvotes: 27,
-    hasUpvoted: false,
-    replies: [
-      {
-        id: 'rep-4-1',
-        author: 'Swee Lah Team',
-        role: 'Swee Lah Team',
-        text: 'Great suggestion Priya! We are designing RTS Feeder departure sync batches specifically for Eastern Singapore business clusters.',
-        timestamp: '4 hours ago',
-        createdAt: Date.now() - 14400000,
-      },
-    ],
-  },
-  {
-    id: 'fb-5',
-    author: 'Jason Teo (GetGo Partner)',
-    role: 'Verified Driver',
-    avatarColor: 'bg-teal-600',
-    category: 'app_feature',
-    categoryLabel: '💡 App Feature Suggestions',
-    content:
-      'Would love an automated fuel & toll calculator feature showing exact breakdown per passenger in both SGD and MYR for cross-border trips (including Malaysia Highway PLUS toll + Causeway gantry).',
-    timestamp: 'Yesterday',
-    createdAt: Date.now() - 86400000,
-    upvotes: 22,
-    hasUpvoted: false,
-    replies: [],
-  },
-];
+/**
+ * All dummy comments have been removed.
+ * Real comments created by users are saved directly in sweelah.app storage.
+ */
+export const INITIAL_FEEDBACK_POSTS: CommunityFeedbackItem[] = [];
+
+// Known dummy comment IDs to purge from legacy browser storage
+const DUMMY_COMMENT_IDS = new Set(['fb-pin-1', 'fb-2', 'fb-3', 'fb-4', 'fb-5']);
+const DUMMY_AUTHORS = new Set([
+  'Swee Lah Community Team',
+  'Derrick Lim (Bishan ➔ Austin)',
+  'Marcus Chia',
+  'Priya Nair (Changi Biotech)',
+  'Jason Teo (GetGo Partner)',
+]);
+
+// In-memory cache for seamless recovery if localStorage is disabled or restricted
+let memoryCache: CommunityFeedbackItem[] | null = null;
+
+function sanitizeAndFilterPosts(items: any[]): CommunityFeedbackItem[] {
+  if (!Array.isArray(items)) return [];
+  return items.filter((item) => {
+    if (!item || typeof item !== 'object') return false;
+    if (!item.id || typeof item.id !== 'string') return false;
+    // Strip known dummy comments
+    if (DUMMY_COMMENT_IDS.has(item.id)) return false;
+    if (item.author && DUMMY_AUTHORS.has(item.author)) return false;
+    return true;
+  });
+}
+
+function persistFeedback(list: CommunityFeedbackItem[]): void {
+  memoryCache = list;
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(list));
+      // Keep legacy storage key in sync without dummy comments
+      localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(list));
+    } catch (err) {
+      console.warn('Failed writing feedback comments to localStorage, retained in memory:', err);
+    }
+    window.dispatchEvent(new Event('sweelah_feedback_updated'));
+  }
+}
 
 /**
- * Retrieves all stored community feedback comments from localStorage.
- * Guaranteed to return persistent records across app sessions and browser reloads.
+ * Retrieves all stored comments from sweelah.app persistent storage.
+ * Strips any legacy dummy comments and returns persistent user-submitted posts.
  */
 export function getStoredFeedback(): CommunityFeedbackItem[] {
   if (typeof window === 'undefined') {
-    return INITIAL_FEEDBACK_POSTS;
+    return memoryCache ?? [];
   }
 
   try {
-    const raw = localStorage.getItem(FEEDBACK_STORAGE_KEY);
-    if (!raw) {
-      // First time initialization: seed persistent storage with authentic community posts
-      localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(INITIAL_FEEDBACK_POSTS));
-      return INITIAL_FEEDBACK_POSTS;
+    // 1. Try primary storage key
+    let raw = localStorage.getItem(FEEDBACK_STORAGE_KEY);
+    let isFromLegacy = false;
+
+    // 2. Fallback to legacy key if primary is not initialized
+    if (raw === null) {
+      raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+      isFromLegacy = true;
     }
 
-    const parsed: CommunityFeedbackItem[] = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(INITIAL_FEEDBACK_POSTS));
-      return INITIAL_FEEDBACK_POSTS;
+    // 3. If storage is completely empty
+    if (raw === null) {
+      if (memoryCache !== null) {
+        return [...memoryCache];
+      }
+      persistFeedback([]);
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    const sanitized = sanitizeAndFilterPosts(parsed);
+
+    // If migrating from legacy or dummy comments were stripped, persist cleaned list
+    if (isFromLegacy || sanitized.length !== parsed.length) {
+      persistFeedback(sanitized);
+    } else {
+      memoryCache = sanitized;
     }
 
     // Sort: pinned posts always at top, then newest createdAt first
-    return parsed.sort((a, b) => {
+    return [...sanitized].sort((a, b) => {
       if (a.isPinned && !b.isPinned) return -1;
       if (!a.isPinned && b.isPinned) return 1;
       return (b.createdAt || 0) - (a.createdAt || 0);
     });
   } catch (err) {
-    console.warn('Failed reading feedback from persistent storage, falling back to initial data:', err);
-    return INITIAL_FEEDBACK_POSTS;
+    console.warn('Failed reading feedback from storage, falling back to memory cache:', err);
+    return memoryCache ?? [];
   }
 }
 
 /**
- * Saves a new feedback comment permanently to localStorage.
+ * Saves a new feedback comment permanently to sweelah.app storage.
  */
 export function saveFeedbackComment(params: {
   author: string;
@@ -256,15 +192,7 @@ export function saveFeedbackComment(params: {
   const unpinned = current.filter((p) => !p.isPinned);
   const updatedList = [...pinned, newItem, ...unpinned];
 
-  try {
-    localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(updatedList));
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('sweelah_feedback_updated'));
-    }
-  } catch (err) {
-    console.error('Failed writing feedback comment to localStorage:', err);
-  }
-
+  persistFeedback(updatedList);
   return newItem;
 }
 
@@ -289,20 +217,12 @@ export function toggleUpvoteFeedback(feedbackId: string): { upvotes: number; has
     return item;
   });
 
-  try {
-    localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(updated));
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('sweelah_feedback_updated'));
-    }
-  } catch (err) {
-    console.error('Failed toggling upvote in storage:', err);
-  }
-
+  persistFeedback(updated);
   return result;
 }
 
 /**
- * Adds a reply to an existing feedback thread permanently.
+ * Adds a reply to an existing feedback thread permanently in sweelah.app.
  */
 export function addFeedbackReply(params: {
   feedbackId: string;
@@ -310,6 +230,8 @@ export function addFeedbackReply(params: {
   role?: 'Commuter' | 'Daily Commuter' | 'Verified Driver' | 'Swee Lah Team';
   text: string;
 }): FeedbackReply | null {
+  if (!params.text.trim()) return null;
+
   const current = getStoredFeedback();
   let newReply: FeedbackReply | null = null;
 
@@ -338,48 +260,26 @@ export function addFeedbackReply(params: {
     return item;
   });
 
-  try {
-    localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(updated));
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('sweelah_feedback_updated'));
-    }
-  } catch (err) {
-    console.error('Failed saving reply to storage:', err);
+  if (newReply) {
+    persistFeedback(updated);
   }
-
   return newReply;
 }
 
 /**
- * Deletes a feedback comment from persistent storage.
+ * Deletes a feedback comment from sweelah.app persistent storage.
  */
 export function deleteFeedbackComment(feedbackId: string): boolean {
   const current = getStoredFeedback();
   const filtered = current.filter((item) => item.id !== feedbackId);
-
-  try {
-    localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(filtered));
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('sweelah_feedback_updated'));
-    }
-    return true;
-  } catch (err) {
-    console.error('Failed deleting feedback from storage:', err);
-    return false;
-  }
+  persistFeedback(filtered);
+  return true;
 }
 
 /**
- * Resets storage back to initial authentic community feed.
+ * Resets storage back to empty in sweelah.app.
  */
 export function resetFeedbackStorage(): CommunityFeedbackItem[] {
-  try {
-    localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(INITIAL_FEEDBACK_POSTS));
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('sweelah_feedback_updated'));
-    }
-  } catch (err) {
-    console.error('Failed resetting feedback storage:', err);
-  }
-  return INITIAL_FEEDBACK_POSTS;
+  persistFeedback([]);
+  return [];
 }
