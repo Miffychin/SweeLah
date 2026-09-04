@@ -81,3 +81,36 @@ export interface CheckpointStatus {
   imageUrl?: string;
   trend: 'increasing' | 'stable' | 'decreasing';
 }
+
+export type FeedbackCategory =
+  | 'carpool_route'
+  | 'checkpoint_tips'
+  | 'rts_updates'
+  | 'app_feature'
+  | 'general_feedback';
+
+export interface FeedbackReply {
+  id: string;
+  author: string;
+  role?: 'Commuter' | 'Daily Commuter' | 'Verified Driver' | 'Swee Lah Team';
+  text: string;
+  timestamp: string;
+  createdAt: number;
+}
+
+export interface CommunityFeedbackItem {
+  id: string;
+  author: string;
+  role?: 'Commuter' | 'Daily Commuter' | 'Verified Driver' | 'Swee Lah Team';
+  avatarColor?: string;
+  category: FeedbackCategory;
+  categoryLabel: string;
+  routeTag?: string;
+  content: string;
+  timestamp: string;
+  createdAt: number;
+  upvotes: number;
+  hasUpvoted?: boolean;
+  replies: FeedbackReply[];
+  isPinned?: boolean;
+}
