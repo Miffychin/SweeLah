@@ -111,28 +111,34 @@ export const TalkToUsTab: React.FC<TalkToUsTabProps> = ({ isMuted, onToast }) =>
     };
   }, []);
 
-  // Initialize Disqus when switching to Disqus mode
+  // Initialize Disqus when switching to Disqus mode or when mode changes
   useEffect(() => {
     if (activeMode === 'disqus') {
-      loadOrResetDisqus();
+      // Allow slight tick for #disqus_thread to mount in DOM
+      const timer = setTimeout(() => {
+        loadOrResetDisqus();
+      }, 50);
+      return () => clearTimeout(timer);
     }
   }, [activeMode]);
 
   const loadOrResetDisqus = () => {
     setDisqusFailed(false);
-    const configureDisqus = function (this: {
-      page: {
-        url: string;
-        identifier: string;
-        title?: string;
-      };
-    }) {
-      this.page.url = PAGE_URL;
-      this.page.identifier = PAGE_IDENTIFIER;
-      this.page.title = PAGE_TITLE;
+    const configureDisqus = function (this: any) {
+      try {
+        this.page = this.page || {};
+        this.page.url = PAGE_URL;
+        this.page.identifier = PAGE_IDENTIFIER;
+        this.page.title = PAGE_TITLE;
+      } catch (err) {
+        console.warn('Disqus config setup warning:', err);
+      }
     };
 
-    if (typeof window !== 'undefined' && window.DISQUS) {
+    // Ensure global disqus_config is bound
+    window.disqus_config = configureDisqus;
+
+    if (typeof window !== 'undefined' && window.DISQUS && typeof window.DISQUS.reset === 'function') {
       try {
         window.DISQUS.reset({
           reload: true,
@@ -142,8 +148,7 @@ export const TalkToUsTab: React.FC<TalkToUsTabProps> = ({ isMuted, onToast }) =>
         console.warn('Disqus reset error:', err);
       }
     } else {
-      window.disqus_config = configureDisqus;
-      const existingScript = document.getElementById('disqus-embed-script');
+      let existingScript = document.getElementById('disqus-embed-script') as HTMLScriptElement | null;
       if (!existingScript) {
         const d = document;
         const s = d.createElement('script');
@@ -151,8 +156,42 @@ export const TalkToUsTab: React.FC<TalkToUsTabProps> = ({ isMuted, onToast }) =>
         s.src = 'https://sweelah.disqus.com/embed.js';
         s.setAttribute('data-timestamp', (+new Date()).toString());
         s.async = true;
-        s.onerror = () => setDisqusFailed(true);
+        s.onerror = () => {
+          console.warn('Disqus embed script load failed (may be blocked by browser tracking protection).');
+          setDisqusFailed(true);
+        };
+        s.onload = () => {
+          if (window.DISQUS && typeof window.DISQUS.reset === 'function') {
+            try {
+              window.DISQUS.reset({
+                reload: true,
+                config: configureDisqus,
+              });
+            } catch (e) {
+              console.warn('Disqus reset after script load warning:', e);
+            }
+          }
+        };
         (d.head || d.body).appendChild(s);
+      } else {
+        // Script is already in DOM; trigger reset once ready
+        let attempts = 0;
+        const interval = setInterval(() => {
+          attempts++;
+          if (window.DISQUS && typeof window.DISQUS.reset === 'function') {
+            clearInterval(interval);
+            try {
+              window.DISQUS.reset({
+                reload: true,
+                config: configureDisqus,
+              });
+            } catch (err) {
+              console.warn('Disqus reset attempt warning:', err);
+            }
+          } else if (attempts > 20) {
+            clearInterval(interval);
+          }
+        }, 100);
       }
     }
   };
