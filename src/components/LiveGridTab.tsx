@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { CheckpointStatus } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { CheckpointStatus, OneMotoringCamera, ViewMode } from '../types';
 import { sound } from '../utils/audio';
 import {
   Video,
@@ -12,13 +12,26 @@ import {
   CheckCircle2,
   RefreshCw,
   ExternalLink,
+  Maximize2,
+  LayoutGrid,
+  Layers,
+  MapPin,
+  ShieldCheck,
+  Radio,
 } from 'lucide-react';
+import {
+  fetchLiveOneMotoringCameras,
+  getDefaultOneMotoringCameras,
+  ONEMOTORING_URL,
+} from '../services/trafficCameraService';
+import { CameraZoomModal } from './CameraZoomModal';
 
 interface LiveGridTabProps {
   checkpoints: CheckpointStatus[];
   isMuted: boolean;
   onToast: (msg: string, type?: 'success' | 'alert' | 'info') => void;
   onReserveRtsFeeder: () => void;
+  viewMode?: ViewMode;
 }
 
 export const LiveGridTab: React.FC<LiveGridTabProps> = ({
@@ -26,21 +39,77 @@ export const LiveGridTab: React.FC<LiveGridTabProps> = ({
   isMuted,
   onToast,
   onReserveRtsFeeder,
+  viewMode = 'app',
 }) => {
-  const [selectedCam, setSelectedCam] = useState<'woodlands_sg' | 'woodlands_my' | 'tuas_sg' | 'tuas_my'>('woodlands_sg');
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [cameras, setCameras] = useState<OneMotoringCamera[]>(getDefaultOneMotoringCameras);
+  const [isLoadingCams, setIsLoadingCams] = useState(false);
+  const [lastUpdatedTime, setLastUpdatedTime] = useState<string>('Just now');
+  const [countdown, setCountdown] = useState<number>(25);
 
-  const woodlands = checkpoints.find((c) => c.id === 'woodlands');
-  const tuas = checkpoints.find((c) => c.id === 'tuas');
+  // Selected cameras in focused view
+  const [woodlandsCamId, setWoodlandsCamId] = useState<string>('2701');
+  const [tuasCamId, setTuasCamId] = useState<string>('4703');
 
-  const handleRefreshCams = () => {
+  // Display mode: 'focused' (Woodlands + Tuas cards) or 'grid' (All 6 OneMotoring cameras)
+  const [displayMode, setDisplayMode] = useState<'focused' | 'grid'>('focused');
+
+  // Zoom modal
+  const [zoomCamera, setZoomCamera] = useState<OneMotoringCamera | null>(null);
+
+  const woodlandsCheckpoint = checkpoints.find((c) => c.id === 'woodlands');
+  const tuasCheckpoint = checkpoints.find((c) => c.id === 'tuas');
+
+  const woodlandsCams = cameras.filter((c) => c.checkpoint === 'woodlands');
+  const tuasCams = cameras.filter((c) => c.checkpoint === 'tuas');
+
+  const selectedWoodlandsCam =
+    woodlandsCams.find((c) => c.id === woodlandsCamId) || woodlandsCams[0] || cameras[0];
+  const selectedTuasCam =
+    tuasCams.find((c) => c.id === tuasCamId) || tuasCams[0] || cameras[3];
+
+  const loadCameras = async (silent = false) => {
+    if (!silent) setIsLoadingCams(true);
+    try {
+      const result = await fetchLiveOneMotoringCameras();
+      setCameras(result.cameras);
+      setLastUpdatedTime(result.fetchedAt);
+      setCountdown(25);
+      if (!silent) {
+        if (!isMuted) sound.playSuccess();
+        onToast(`OneMotoring cameras updated (${result.source === 'live' ? 'Live LTA DataMall' : 'Cached'}).`);
+      }
+    } catch {
+      if (!silent) {
+        onToast('Using latest cached OneMotoring snapshot.', 'info');
+      }
+    } finally {
+      if (!silent) setIsLoadingCams(false);
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    loadCameras(true);
+  }, []);
+
+  // Periodic refresh & countdown timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          loadCameras(true);
+          return 25;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isMuted]);
+
+  const handleManualRefresh = () => {
     if (!isMuted) sound.playTap();
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-      if (!isMuted) sound.playSuccess();
-      onToast('Traffic cameras & queue estimates updated.');
-    }, 600);
+    loadCameras(false);
   };
 
   const handleReserveFeeder = () => {
@@ -48,160 +117,407 @@ export const LiveGridTab: React.FC<LiveGridTabProps> = ({
     onReserveRtsFeeder();
   };
 
+  const handleCameraSelect = (camId: string, checkpoint: 'woodlands' | 'tuas') => {
+    if (!isMuted) sound.playTap();
+    if (checkpoint === 'woodlands') {
+      setWoodlandsCamId(camId);
+    } else {
+      setTuasCamId(camId);
+    }
+  };
+
   return (
     <div id="tab-live" className="space-y-4 animate-in fade-in duration-200">
-      {/* Header bar */}
-      <div className="flex justify-between items-center">
+      {/* Top Header & View Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white p-3.5 rounded-3xl border border-slate-200 shadow-sm">
         <div>
-          <h2 className="text-sm font-extrabold text-slate-800">Causeway Traffic Cameras & RTS Hub</h2>
-          <p className="text-[11px] text-slate-500">Real-time border queue analytics & live webcams</p>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm sm:text-base font-extrabold text-slate-800 flex items-center gap-1.5">
+              <span>Causeway Live Cameras & RTS Hub</span>
+            </h2>
+            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-300/60">
+              <Radio className="w-2.5 h-2.5 text-emerald-600 animate-pulse" />
+              <span>OneMotoring Live</span>
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-500 mt-0.5">
+            Real-time traffic images sourced from{' '}
+            <a
+              href={ONEMOTORING_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-emerald-700 font-semibold underline hover:text-emerald-800 inline-flex items-center gap-0.5"
+            >
+              LTA OneMotoring
+              <ExternalLink className="w-2.5 h-2.5" />
+            </a>
+          </p>
         </div>
-        <button
-          onClick={handleRefreshCams}
-          disabled={isRefreshing}
-          className="text-[10px] text-emerald-800 font-bold bg-emerald-100 hover:bg-emerald-200 px-2.5 py-1 rounded-full flex items-center gap-1 transition-colors cursor-pointer"
-        >
-          <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
-          <span>Live Feed</span>
-        </button>
+
+        <div className="flex items-center gap-2 self-end sm:self-center">
+          {/* Grid vs Focused Mode Switcher */}
+          <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200">
+            <button
+              onClick={() => {
+                if (!isMuted) sound.playTap();
+                setDisplayMode('focused');
+              }}
+              className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                displayMode === 'focused'
+                  ? 'bg-white text-slate-800 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title="Dual Checkpoint Focused View"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline">Focused</span>
+            </button>
+            <button
+              onClick={() => {
+                if (!isMuted) sound.playTap();
+                setDisplayMode('grid');
+              }}
+              className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                displayMode === 'grid'
+                  ? 'bg-white text-slate-800 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title="6-Camera Live Matrix View"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline">6-Cam Grid</span>
+            </button>
+          </div>
+
+          {/* Refresh Button with countdown */}
+          <button
+            onClick={handleManualRefresh}
+            disabled={isLoadingCams}
+            className="text-[11px] text-emerald-800 font-bold bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 px-2.5 py-1 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Refresh OneMotoring Camera Feeds"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingCams ? 'animate-spin text-emerald-600' : ''}`} />
+            <span className="font-mono text-[10px]">{countdown}s</span>
+          </button>
+        </div>
       </div>
 
-      {/* Woodlands Causeway Camera Feed Card */}
-      <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-200 space-y-3">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-            <div>
-              <span className="text-xs font-bold text-slate-800">Woodlands Causeway</span>
-              <span className="text-[10px] text-slate-400 block">BSI Customs ⇄ Woodlands Checkpoint</span>
-            </div>
+      {/* Official OneMotoring LTA Banner Card */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-emerald-950 text-white p-3.5 rounded-3xl border border-slate-800 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+            <Video className="w-5 h-5" />
           </div>
-          <div className="text-right">
-            <span className="text-xs font-black text-amber-600 font-mono">
-              ~{woodlands?.sgToMyTimeMin || 24} mins
-            </span>
-            <span className="text-[10px] text-slate-400 block">SG ➔ JB Queue</span>
-          </div>
-        </div>
-
-        {/* Cam Selection Pills */}
-        <div className="flex gap-1 text-[10px]">
-          <button
-            onClick={() => setSelectedCam('woodlands_sg')}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-              selectedCam === 'woodlands_sg' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            SG ➔ MY (Cam #102)
-          </button>
-          <button
-            onClick={() => setSelectedCam('woodlands_my')}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-              selectedCam === 'woodlands_my' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            MY ➔ SG (Cam #105)
-          </button>
-        </div>
-
-        {/* Camera Visualizer Screen */}
-        <div className="h-36 bg-gradient-to-br from-slate-900 via-slate-850 to-emerald-950 rounded-2xl flex flex-col justify-between p-3 relative overflow-hidden text-white border border-slate-700/60 shadow-inner group">
-          {/* Scanline simulation */}
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none opacity-40"></div>
-
-          {/* Road traffic visualization graphic */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
-            <div className="w-full h-8 border-y border-dashed border-emerald-400/40 flex justify-around items-center px-4">
-              <span className="text-xs">🚗 🚙 🛻 🚗</span>
-              <span className="text-xs">🚙 🚗 🛻</span>
-            </div>
-          </div>
-
-          <div className="flex justify-between items-center z-10 text-[10px] text-emerald-300 font-mono">
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-              REC • LIVE BSI FEED
-            </span>
-            <span>{selectedCam === 'woodlands_sg' ? 'WOODLANDS_CAM_102' : 'WOODLANDS_CAM_105'}</span>
-          </div>
-
-          <div className="z-10 text-center space-y-1">
-            <div className="text-xs font-bold text-slate-200 flex items-center justify-center gap-1.5">
-              <Video className="w-4 h-4 text-emerald-400" />
-              <span>
-                {selectedCam === 'woodlands_sg'
-                  ? 'Woodlands Causeway (Towards JB)'
-                  : 'Johor Bahru CIQ (Towards SG)'}
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-white">Official OneMotoring Traffic Cameras</span>
+              <span className="text-[9px] bg-emerald-500/30 text-emerald-300 font-extrabold px-2 py-0.5 rounded-full border border-emerald-500/40">
+                LTA DataMall
               </span>
             </div>
-            <p className="text-[10px] text-slate-400">Moderate flow • Bus lanes moving steadily</p>
-          </div>
-
-          <div className="flex justify-between items-center z-10 text-[9px] text-slate-400">
-            <span>Flow Rate: ~42 cars/min</span>
-            <span className="bg-slate-900/80 px-1.5 py-0.5 rounded font-mono">Updated 30s ago</span>
+            <p className="text-[11px] text-slate-300 mt-0.5">
+              Live border surveillance cameras covering Woodlands Causeway & Tuas Second Link. Updated every 20-30s.
+            </p>
           </div>
         </div>
+
+        <a
+          href={ONEMOTORING_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all shadow active:scale-95 shrink-0 cursor-pointer"
+        >
+          <span>OneMotoring Portal</span>
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
       </div>
 
-      {/* Tuas Second Link Camera Feed Card */}
-      <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-200 space-y-3">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-            <div>
-              <span className="text-xs font-bold text-slate-800">Tuas Second Link</span>
-              <span className="text-[10px] text-slate-400 block">KSAB Tanjung Kupang ⇄ Tuas CIQ</span>
+      {/* 6-Camera Live Matrix Mode */}
+      {displayMode === 'grid' && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-xs font-bold text-slate-700 px-1">
+            <span>All 6 Checkpoint Traffic Cameras (OneMotoring Feed)</span>
+            <span className="text-[10px] text-slate-400 font-mono">Synced: {lastUpdatedTime}</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {cameras.map((cam) => (
+              <div
+                key={cam.id}
+                className="bg-white rounded-3xl p-3 border border-slate-200 shadow-sm hover:shadow-md transition-shadow space-y-2 flex flex-col"
+              >
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span
+                      className={`w-2 h-2 rounded-full shrink-0 ${
+                        cam.checkpoint === 'woodlands' ? 'bg-amber-500' : 'bg-emerald-500'
+                      }`}
+                    ></span>
+                    <span className="font-bold text-slate-800 text-[11px] truncate" title={cam.name}>
+                      {cam.direction}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-500 shrink-0 font-bold bg-slate-100 px-1.5 py-0.5 rounded">
+                    #{cam.id}
+                  </span>
+                </div>
+
+                {/* Camera Image Thumbnail */}
+                <div
+                  onClick={() => setZoomCamera(cam)}
+                  className="relative group cursor-pointer overflow-hidden rounded-2xl bg-black aspect-video flex items-center justify-center border border-slate-700/60"
+                >
+                  <img
+                    src={cam.imageUrl}
+                    alt={cam.name}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  {/* Scanline subtle effect */}
+                  <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none opacity-30"></div>
+
+                  {/* Hover magnifier */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-1.5 text-xs font-bold">
+                    <Maximize2 className="w-4 h-4 text-emerald-400" />
+                    <span>Click to Zoom</span>
+                  </div>
+
+                  <div className="absolute bottom-1.5 left-2 bg-black/70 px-1.5 py-0.5 rounded text-[9px] font-mono text-emerald-300">
+                    {cam.formattedTime}
+                  </div>
+                </div>
+
+                <div className="text-[10px] text-slate-500 line-clamp-1 mt-auto">
+                  {cam.locationDescription}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Focused Mode (Woodlands + Tuas Dedicated Cards) */}
+      {displayMode === 'focused' && (
+        <div className={`grid gap-4 ${viewMode === 'web' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
+          {/* Woodlands Causeway Camera Feed Card */}
+          <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-200 space-y-3 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                  <div>
+                    <span className="text-xs font-bold text-slate-800">Woodlands Causeway</span>
+                    <span className="text-[10px] text-slate-400 block">BSI Customs ⇄ Woodlands Checkpoint</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-black text-amber-600 font-mono">
+                    ~{woodlandsCheckpoint?.sgToMyTimeMin || 24} mins
+                  </span>
+                  <span className="text-[10px] text-slate-400 block">SG ➔ JB Queue</span>
+                </div>
+              </div>
+
+              {/* Cam Selection Pills */}
+              <div className="flex flex-wrap gap-1.5 text-[10px]">
+                {woodlandsCams.map((cam) => {
+                  const isSelected = cam.id === woodlandsCamId;
+                  return (
+                    <button
+                      key={cam.id}
+                      onClick={() => handleCameraSelect(cam.id, 'woodlands')}
+                      className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-slate-800 text-white shadow-sm ring-1 ring-slate-700'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {cam.id === '2701' && 'Causeway (Cam #2701)'}
+                      {cam.id === '2702' && 'BKE View (Cam #2702)'}
+                      {cam.id === '2704' && 'Flyover (Cam #2704)'}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Camera Visualizer Screen */}
+              <div
+                onClick={() => setZoomCamera(selectedWoodlandsCam)}
+                className="group relative h-48 sm:h-52 bg-slate-950 rounded-2xl overflow-hidden flex flex-col justify-between p-3 text-white border border-slate-700/60 shadow-inner cursor-pointer"
+              >
+                {/* Real Live Image from OneMotoring */}
+                <img
+                  src={selectedWoodlandsCam.imageUrl}
+                  alt={selectedWoodlandsCam.name}
+                  referrerPolicy="no-referrer"
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 select-none"
+                />
+
+                {/* Dark gradient scrim */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60 pointer-events-none"></div>
+
+                {/* Scanline simulation */}
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none opacity-25"></div>
+
+                {/* Top bar info */}
+                <div className="flex justify-between items-center z-10 text-[10px] text-emerald-300 font-mono">
+                  <span className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-lg border border-emerald-500/30">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                    <span>LIVE ONEMOTORING</span>
+                  </span>
+                  <span className="bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-lg font-bold text-slate-200">
+                    CAM #{selectedWoodlandsCam.id}
+                  </span>
+                </div>
+
+                {/* Center Hover Action */}
+                <div className="z-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <span className="bg-slate-900/90 text-white text-xs font-extrabold px-3 py-1.5 rounded-xl border border-slate-600 flex items-center gap-1.5 shadow-xl">
+                    <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Click to Expand Live Cam</span>
+                  </span>
+                </div>
+
+                {/* Bottom bar info */}
+                <div className="z-10 space-y-1">
+                  <div className="text-xs font-bold text-white flex items-center gap-1.5 drop-shadow-md">
+                    <Video className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span className="truncate">{selectedWoodlandsCam.name}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[9px] text-slate-300 font-mono">
+                    <span className="truncate text-slate-200">{selectedWoodlandsCam.locationDescription}</span>
+                    <span className="bg-slate-900/90 px-1.5 py-0.5 rounded text-emerald-300 shrink-0 ml-2">
+                      {selectedWoodlandsCam.formattedTime}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+              <span className="flex items-center gap-1 text-emerald-700 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Woodlands BSI queue sensor active</span>
+              </span>
+              <a
+                href={ONEMOTORING_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-slate-500 hover:text-emerald-700 font-bold flex items-center gap-1"
+              >
+                <span>OneMotoring Details</span>
+                <ExternalLink className="w-2.5 h-2.5" />
+              </a>
             </div>
           </div>
-          <div className="text-right">
-            <span className="text-xs font-black text-emerald-700 font-mono">
-              ~{tuas?.sgToMyTimeMin || 14} mins
-            </span>
-            <span className="text-[10px] text-emerald-600 font-bold block">Fast Flow 🟢</span>
+
+          {/* Tuas Second Link Camera Feed Card */}
+          <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-200 space-y-3 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                  <div>
+                    <span className="text-xs font-bold text-slate-800">Tuas Second Link</span>
+                    <span className="text-[10px] text-slate-400 block">KSAB Tanjung Kupang ⇄ Tuas CIQ</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-black text-emerald-700 font-mono">
+                    ~{tuasCheckpoint?.sgToMyTimeMin || 14} mins
+                  </span>
+                  <span className="text-[10px] text-emerald-600 font-bold block">Fast Flow 🟢</span>
+                </div>
+              </div>
+
+              {/* Cam Selection */}
+              <div className="flex flex-wrap gap-1.5 text-[10px]">
+                {tuasCams.map((cam) => {
+                  const isSelected = cam.id === tuasCamId;
+                  return (
+                    <button
+                      key={cam.id}
+                      onClick={() => handleCameraSelect(cam.id, 'tuas')}
+                      className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-slate-800 text-white shadow-sm ring-1 ring-slate-700'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {cam.id === '4703' && 'Second Link Bridge (Cam #4703)'}
+                      {cam.id === '4713' && 'Tuas Checkpoint (Cam #4713)'}
+                      {cam.id === '4712' && 'After Tuas West (Cam #4712)'}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Camera Visualizer Screen */}
+              <div
+                onClick={() => setZoomCamera(selectedTuasCam)}
+                className="group relative h-48 sm:h-52 bg-slate-950 rounded-2xl overflow-hidden flex flex-col justify-between p-3 text-white border border-slate-700/60 shadow-inner cursor-pointer"
+              >
+                {/* Real Live Image from OneMotoring */}
+                <img
+                  src={selectedTuasCam.imageUrl}
+                  alt={selectedTuasCam.name}
+                  referrerPolicy="no-referrer"
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 select-none"
+                />
+
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60 pointer-events-none"></div>
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none opacity-25"></div>
+
+                <div className="flex justify-between items-center z-10 text-[10px] text-emerald-300 font-mono">
+                  <span className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-lg border border-emerald-500/30">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span>CLEAR TRAFFIC • LTA</span>
+                  </span>
+                  <span className="bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-lg font-bold text-slate-200">
+                    CAM #{selectedTuasCam.id}
+                  </span>
+                </div>
+
+                <div className="z-10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <span className="bg-slate-900/90 text-white text-xs font-extrabold px-3 py-1.5 rounded-xl border border-slate-600 flex items-center gap-1.5 shadow-xl">
+                    <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Click to Expand Live Cam</span>
+                  </span>
+                </div>
+
+                <div className="z-10 space-y-1">
+                  <div className="text-xs font-bold text-white flex items-center gap-1.5 drop-shadow-md">
+                    <Video className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span className="truncate">{selectedTuasCam.name}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[9px] text-slate-300 font-mono">
+                    <span className="truncate text-slate-200">{selectedTuasCam.locationDescription}</span>
+                    <span className="bg-slate-900/90 px-1.5 py-0.5 rounded text-emerald-300 shrink-0 ml-2">
+                      {selectedTuasCam.formattedTime}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+              <span className="flex items-center gap-1 text-emerald-700 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Second Link tolls normal (~$3.50 SGD)</span>
+              </span>
+              <a
+                href={ONEMOTORING_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-slate-500 hover:text-emerald-700 font-bold flex items-center gap-1"
+              >
+                <span>OneMotoring Details</span>
+                <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            </div>
           </div>
         </div>
-
-        {/* Cam Selection */}
-        <div className="flex gap-1 text-[10px]">
-          <button
-            onClick={() => setSelectedCam('tuas_sg')}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-              selectedCam === 'tuas_sg' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            Tuas SG ➔ MY (Cam #204)
-          </button>
-          <button
-            onClick={() => setSelectedCam('tuas_my')}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-              selectedCam === 'tuas_my' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            Tuas MY ➔ SG (Cam #208)
-          </button>
-        </div>
-
-        <div className="h-28 bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl flex flex-col justify-between p-3 relative overflow-hidden text-white border border-slate-700/60 shadow-inner">
-          <div className="flex justify-between items-center text-[10px] text-emerald-300 font-mono">
-            <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              CLEAR TRAFFIC
-            </span>
-            <span>TUAS_LINK_CAM_204</span>
-          </div>
-
-          <div className="text-center">
-            <div className="text-xs font-bold text-slate-200">Tuas 2nd Link Checkpoint Concourse</div>
-            <p className="text-[10px] text-emerald-300 font-medium">Optimal choice for West Singapore commuters</p>
-          </div>
-
-          <div className="flex justify-between items-center text-[9px] text-slate-400">
-            <span>Toll Split: ~$3.50 SGD</span>
-            <span className="bg-slate-900/80 px-1.5 py-0.5 rounded font-mono">Updated 15s ago</span>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* RTS Link Shuttle Connector Card */}
       <div className="bg-gradient-to-r from-emerald-900 via-emerald-850 to-slate-900 text-white p-4 rounded-3xl shadow-md space-y-2.5 border border-emerald-600/30">
@@ -288,6 +604,15 @@ export const LiveGridTab: React.FC<LiveGridTabProps> = ({
           </p>
         </div>
       </div>
+
+      {/* Fullscreen Camera Zoom Modal */}
+      <CameraZoomModal
+        camera={zoomCamera}
+        isOpen={!!zoomCamera}
+        onClose={() => setZoomCamera(null)}
+        onRefresh={() => loadCameras(false)}
+        isRefreshing={isLoadingCams}
+      />
     </div>
   );
 };

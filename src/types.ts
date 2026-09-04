@@ -98,6 +98,23 @@ export interface FeedbackReply {
   createdAt: number;
 }
 
+export type ViewMode = 'app' | 'web';
+
+export interface OneMotoringCamera {
+  id: string; // '2701' | '2702' | '2704' | '4703' | '4712' | '4713'
+  checkpoint: 'woodlands' | 'tuas';
+  name: string; // Official OneMotoring title e.g. "View from Woodlands Causeway (Towards Johor)"
+  direction: string; // e.g. "SG ➔ JB (Causeway)"
+  locationDescription: string;
+  imageUrl: string;
+  timestamp: string;
+  formattedTime?: string;
+  latitude: number;
+  longitude: number;
+  sourceUrl: string;
+  isOnline: boolean;
+}
+
 export interface CommunityFeedbackItem {
   id: string;
   author: string;
