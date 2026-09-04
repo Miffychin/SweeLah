@@ -28,6 +28,7 @@ import { sound } from '../utils/audio';
 import { CommunityFeedbackItem, FeedbackCategory, FeedbackReply } from '../types';
 import {
   getStoredFeedback,
+  fetchRemoteFeedback,
   saveFeedbackComment,
   toggleUpvoteFeedback,
   addFeedbackReply,
@@ -95,19 +96,49 @@ export const TalkToUsTab: React.FC<TalkToUsTabProps> = ({ isMuted, onToast }) =>
   // Disqus State
   const [isRefreshingDisqus, setIsRefreshingDisqus] = useState(false);
   const [disqusFailed, setDisqusFailed] = useState(false);
+  const [isSyncingServer, setIsSyncingServer] = useState(false);
 
-  // Load stored feedback on mount
+  // Load stored feedback on mount and continuously sync across all devices
   useEffect(() => {
-    const data = getStoredFeedback();
-    setFeedbackList(data);
+    // 1. Instant local render
+    const initialData = getStoredFeedback();
+    setFeedbackList(initialData);
 
-    // Sync listener for cross-window / tab changes
+    // 2. Fetch latest shared comments from server API
+    setIsSyncingServer(true);
+    fetchRemoteFeedback()
+      .then((remoteData) => {
+        setFeedbackList(remoteData);
+      })
+      .finally(() => setIsSyncingServer(false));
+
+    // 3. Local cross-tab sync listener
     const handleSync = () => {
       setFeedbackList(getStoredFeedback());
     };
     window.addEventListener('sweelah_feedback_updated', handleSync);
+
+    // 4. Auto-poll server every 4 seconds so comments submitted on other devices appear in real time
+    const pollInterval = setInterval(() => {
+      fetchRemoteFeedback().then((remote) => {
+        setFeedbackList(remote);
+      });
+    }, 4000);
+
+    // 5. Instantly refresh whenever user returns to or focuses this window/tab on any device
+    const handleFocus = () => {
+      fetchRemoteFeedback().then((remote) => {
+        setFeedbackList(remote);
+      });
+    };
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
     return () => {
       window.removeEventListener('sweelah_feedback_updated', handleSync);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+      clearInterval(pollInterval);
     };
   }, []);
 
@@ -206,8 +237,23 @@ export const TalkToUsTab: React.FC<TalkToUsTabProps> = ({ isMuted, onToast }) =>
     }, 600);
   };
 
+  // Manual Server Sync Handler
+  const handleManualSync = async () => {
+    if (!isMuted) sound.playTap();
+    setIsSyncingServer(true);
+    try {
+      const latest = await fetchRemoteFeedback();
+      setFeedbackList(latest);
+      onToast(`Synchronized ${latest.length} comments across all devices.`, 'success');
+    } catch (err) {
+      onToast('Sync error, displaying cached comments.', 'alert');
+    } finally {
+      setIsSyncingServer(false);
+    }
+  };
+
   // Submit New Comment
-  const handleSubmitFeedback = (e: React.FormEvent) => {
+  const handleSubmitFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentContent.trim()) {
       onToast('Please enter your comment or feedback before posting.', 'alert');
@@ -221,7 +267,7 @@ export const TalkToUsTab: React.FC<TalkToUsTabProps> = ({ isMuted, onToast }) =>
 
     setIsSubmitting(true);
     try {
-      const savedItem = saveFeedbackComment({
+      const savedItem = await saveFeedbackComment({
         author: authorName.trim() || 'Verified Commuter',
         role: authorRole,
         category,
@@ -229,13 +275,13 @@ export const TalkToUsTab: React.FC<TalkToUsTabProps> = ({ isMuted, onToast }) =>
         content: commentContent.trim(),
       });
 
-      // Update state
+      // Update state immediately
       setFeedbackList(getStoredFeedback());
       setCommentContent('');
       setJustSubmittedId(savedItem.id);
 
       if (!isMuted) sound.playSuccess();
-      onToast('Comment saved in sweelah.app and published to the board!', 'success');
+      onToast('Comment saved and broadcast to all devices!', 'success');
 
       // Remove "just submitted" highlight after 5 seconds
       setTimeout(() => {
@@ -250,18 +296,18 @@ export const TalkToUsTab: React.FC<TalkToUsTabProps> = ({ isMuted, onToast }) =>
   };
 
   // Upvote Handler
-  const handleToggleUpvote = (id: string) => {
+  const handleToggleUpvote = async (id: string) => {
     if (!isMuted) sound.playTap();
-    toggleUpvoteFeedback(id);
+    await toggleUpvoteFeedback(id);
     setFeedbackList(getStoredFeedback());
   };
 
   // Reply Handler
-  const handleAddReply = (feedbackId: string) => {
+  const handleAddReply = async (feedbackId: string) => {
     if (!replyText.trim()) return;
 
     if (!isMuted) sound.playTap();
-    addFeedbackReply({
+    await addFeedbackReply({
       feedbackId,
       author: replyAuthor.trim() || authorName.trim() || 'Verified Commuter',
       role: authorRole,
@@ -271,16 +317,16 @@ export const TalkToUsTab: React.FC<TalkToUsTabProps> = ({ isMuted, onToast }) =>
     setFeedbackList(getStoredFeedback());
     setReplyText('');
     setReplyingToId(null);
-    onToast('Reply posted and stored permanently in thread.', 'success');
+    onToast('Reply posted and synchronized across devices.', 'success');
   };
 
   // Delete Handler
-  const handleDeleteComment = (id: string) => {
-    if (confirm('Are you sure you want to remove this comment from the permanent feed?')) {
+  const handleDeleteComment = async (id: string) => {
+    if (confirm('Are you sure you want to remove this comment from all devices?')) {
       if (!isMuted) sound.playTap();
-      deleteFeedbackComment(id);
+      await deleteFeedbackComment(id);
       setFeedbackList(getStoredFeedback());
-      onToast('Comment removed from feed.', 'info');
+      onToast('Comment removed across all devices.', 'info');
     }
   };
 
@@ -387,17 +433,39 @@ export const TalkToUsTab: React.FC<TalkToUsTabProps> = ({ isMuted, onToast }) =>
           </div>
         </div>
 
-        {/* Persistence Assurance Banner */}
-        <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-2xl p-2.5 flex flex-wrap items-center justify-between gap-2 text-[11px] text-emerald-900">
-          <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
-            <span className="font-medium">
-              Permanent Storage Active: Comments stay permanently saved in sweelah.app across sessions.
+        {/* Cross-Device Sync & Persistence Assurance Banner */}
+        <div className="bg-emerald-50/90 border border-emerald-200/90 rounded-2xl p-2.5 flex flex-wrap items-center justify-between gap-2 text-[11px] text-emerald-900 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <div className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+              <span className="font-semibold">
+                Live Cross-Device Sync:
+              </span>
+              <span className="text-emerald-800">
+                Comments and replies are visible to all devices who have access to the app.
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleManualSync}
+              disabled={isSyncingServer}
+              className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 bg-white border border-emerald-300 rounded-md hover:bg-emerald-50 transition-colors cursor-pointer disabled:opacity-50"
+              title="Sync comments with all other devices"
+            >
+              <RefreshCw className={`w-3 h-3 ${isSyncingServer ? 'animate-spin text-emerald-600' : ''}`} />
+              <span>{isSyncingServer ? 'Syncing...' : 'Sync Now'}</span>
+            </button>
+            <span className="text-[10px] font-mono font-bold bg-white text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md shadow-2xs">
+              {feedbackList.length} Live Comments
             </span>
           </div>
-          <span className="text-[10px] font-mono font-bold bg-white text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md shadow-2xs">
-            {feedbackList.length} Comments Stored
-          </span>
         </div>
       </div>
 
