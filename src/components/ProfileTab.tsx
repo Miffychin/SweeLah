@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Currency } from '../types';
+import { Currency, EyeComfortMode } from '../types';
 import { sound } from '../utils/audio';
 import {
   User,
@@ -12,18 +12,26 @@ import {
   MapPin,
   FileCheck,
   CheckCircle2,
+  Eye,
+  Sun,
+  Moon,
+  BookOpen,
 } from 'lucide-react';
 
 interface ProfileTabProps {
   currency: Currency;
   isMuted: boolean;
   onToast: (msg: string, type?: 'success' | 'alert' | 'info') => void;
+  eyeComfortMode?: EyeComfortMode;
+  onSetEyeComfort?: (mode: EyeComfortMode) => void;
 }
 
 export const ProfileTab: React.FC<ProfileTabProps> = ({
   currency,
   isMuted,
   onToast,
+  eyeComfortMode = 'sage',
+  onSetEyeComfort,
 }) => {
   const [prefLangMatch, setPrefLangMatch] = useState(true);
   const [prefFemaleOnly, setPrefFemaleOnly] = useState(false);
@@ -39,12 +47,17 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
     });
   };
 
+  const handleSelectEyeMode = (mode: EyeComfortMode) => {
+    if (!isMuted) sound.playToggle();
+    onSetEyeComfort?.(mode);
+  };
+
   return (
     <div id="tab-profile" className="space-y-4 animate-in fade-in duration-200">
       {/* Profile Header */}
       <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-200 space-y-3">
         <div className="flex items-center space-x-3.5">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center font-black text-xl shadow-md border-2 border-emerald-400/40">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#3b5946] to-[#253d30] text-white flex items-center justify-center font-black text-xl shadow-md border-2 border-[#4f775e]/40">
             SL
           </div>
           <div>
@@ -75,6 +88,92 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({
           <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
             Active
           </span>
+        </div>
+      </div>
+
+      {/* Eye Comfort & Display Tone Section */}
+      <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-200 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Eye className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Eye Comfort & Display Tone</span>
+          </div>
+          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+            Anti-Fatigue
+          </span>
+        </div>
+        <p className="text-[11px] text-slate-500 leading-relaxed">
+          Scientifically tuned color profiles that eliminate harsh blue-light glare and high-contrast eye strain.
+        </p>
+
+        <div className="grid grid-cols-3 gap-2 pt-1">
+          {/* Sage Paper */}
+          <button
+            type="button"
+            onClick={() => handleSelectEyeMode('sage')}
+            className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer relative ${
+              eyeComfortMode === 'sage'
+                ? 'border-2 border-[#3b5946] bg-[#eef4ef] shadow-sm'
+                : 'border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="w-3 h-3 rounded-full bg-[#466a54]"></span>
+              <span className="text-xs font-bold text-slate-800">Sage Paper</span>
+            </div>
+            <p className="text-[10px] text-slate-500 leading-tight">
+              Natural warm linen & soothing forest tone (Default)
+            </p>
+            {eyeComfortMode === 'sage' && (
+              <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[#3b5946]"></div>
+            )}
+          </button>
+
+          {/* Warm Sepia */}
+          <button
+            type="button"
+            onClick={() => handleSelectEyeMode('sepia')}
+            className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer relative ${
+              eyeComfortMode === 'sepia'
+                ? 'border-2 border-[#875525] bg-[#fbf5eb] shadow-sm'
+                : 'border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="w-3 h-3 rounded-full bg-[#9c6a3b]"></span>
+              <span className="text-xs font-bold text-slate-800">Warm Sepia</span>
+            </div>
+            <p className="text-[10px] text-slate-500 leading-tight">
+              Mellow amber book-paper tone for reading
+            </p>
+            {eyeComfortMode === 'sepia' && (
+              <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[#875525]"></div>
+            )}
+          </button>
+
+          {/* Soft Night */}
+          <button
+            type="button"
+            onClick={() => handleSelectEyeMode('night')}
+            className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer relative ${
+              eyeComfortMode === 'night'
+                ? 'border-2 border-[#475e50] bg-[#222c26] text-white shadow-sm'
+                : 'border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="w-3 h-3 rounded-full bg-[#36493e]"></span>
+              <span className={`text-xs font-bold ${eyeComfortMode === 'night' ? 'text-[#e2e8e4]' : 'text-slate-800'}`}>
+                Soft Night
+              </span>
+            </div>
+            <p className={`text-[10px] leading-tight ${eyeComfortMode === 'night' ? 'text-[#97a89e]' : 'text-slate-500'}`}>
+              Matte dark olive for night cabins
+            </p>
+            {eyeComfortMode === 'night' && (
+              <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[#72b490]"></div>
+            )}
+          </button>
         </div>
       </div>
 

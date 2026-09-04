@@ -1,1 +1,229 @@
 @import "tailwindcss";
+
+@layer base {
+  /* Eye-comfort anti-glare text rendering */
+  html, body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Muted, comfortable scrollbar to eliminate bright white track glare */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(120, 138, 128, 0.3);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(120, 138, 128, 0.5);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* EYE-COMFORT COLOR SCHEMES                                                 */
+/* Eliminates blue-light glare, harsh high-contrast black/white, and eye fatigue */
+/* -------------------------------------------------------------------------- */
+
+/* 1. SAGE & LINEN PAPER THEME (DEFAULT EYE-COMFORT) */
+[data-eye-comfort="sage"] {
+  --color-canvas: #f5f3ec;
+  --color-card: #fdfcf9;
+  --color-card-sub: #f3eee4;
+  --color-border: #e4ded2;
+  --color-text-main: #212824;
+  --color-text-muted: #5e6b62;
+  --color-accent-primary: #2d5440;
+  --color-accent-badge-bg: #edf4ee;
+  --color-accent-badge-text: #234836;
+}
+
+[data-eye-comfort="sage"] .bg-white {
+  background-color: #fdfcf9 !important;
+}
+
+[data-eye-comfort="sage"] .border-slate-200,
+[data-eye-comfort="sage"] .border-slate-200\/80,
+[data-eye-comfort="sage"] .border-slate-200\/90 {
+  border-color: #e4dfd3 !important;
+}
+
+[data-eye-comfort="sage"] .bg-slate-50 {
+  background-color: #f4efe5 !important;
+}
+
+[data-eye-comfort="sage"] .bg-slate-100 {
+  background-color: #ede7dc !important;
+}
+
+[data-eye-comfort="sage"] .text-slate-800,
+[data-eye-comfort="sage"] .text-slate-900 {
+  color: #212924 !important;
+}
+
+[data-eye-comfort="sage"] .text-slate-700 {
+  color: #35423a !important;
+}
+
+[data-eye-comfort="sage"] .text-slate-500 {
+  color: #5c6b61 !important;
+}
+
+[data-eye-comfort="sage"] .text-slate-400 {
+  color: #7b8a81 !important;
+}
+
+[data-eye-comfort="sage"] .bg-emerald-50 {
+  background-color: #eff5f0 !important;
+}
+
+[data-eye-comfort="sage"] .bg-emerald-100 {
+  background-color: #e7f0e9 !important;
+}
+
+[data-eye-comfort="sage"] .text-emerald-800,
+[data-eye-comfort="sage"] .text-emerald-900 {
+  color: #234b37 !important;
+}
+
+[data-eye-comfort="sage"] .text-emerald-700 {
+  color: #2d5741 !important;
+}
+
+[data-eye-comfort="sage"] .border-emerald-200,
+[data-eye-comfort="sage"] .border-emerald-300 {
+  border-color: #cfdfd4 !important;
+}
+
+[data-eye-comfort="sage"] .bg-emerald-600,
+[data-eye-comfort="sage"] .bg-emerald-500 {
+  background-color: #2d5541 !important;
+}
+
+[data-eye-comfort="sage"] .hover\:bg-emerald-700:hover {
+  background-color: #244635 !important;
+}
+
+/* 2. WARM SEPIA PAPER THEME (GENTLE EVENING & E-READER COMFORT) */
+[data-eye-comfort="sepia"] {
+  --color-canvas: #f3ede2;
+  --color-card: #fcf8f0;
+  --color-card-sub: #ede4d3;
+  --color-border: #e6dccb;
+  --color-text-main: #2b221a;
+  --color-text-muted: #6b5c4f;
+  --color-accent-primary: #875525;
+}
+
+[data-eye-comfort="sepia"] .bg-white {
+  background-color: #faf6ed !important;
+}
+
+[data-eye-comfort="sepia"] .border-slate-200,
+[data-eye-comfort="sepia"] .border-slate-200\/80,
+[data-eye-comfort="sepia"] .border-slate-200\/90 {
+  border-color: #e5dac9 !important;
+}
+
+[data-eye-comfort="sepia"] .bg-slate-50 {
+  background-color: #f0e6d4 !important;
+}
+
+[data-eye-comfort="sepia"] .bg-slate-100 {
+  background-color: #e8dcc8 !important;
+}
+
+[data-eye-comfort="sepia"] .text-slate-800,
+[data-eye-comfort="sepia"] .text-slate-900 {
+  color: #2b221a !important;
+}
+
+[data-eye-comfort="sepia"] .text-slate-700 {
+  color: #45372d !important;
+}
+
+[data-eye-comfort="sepia"] .text-slate-500 {
+  color: #6b5c4f !important;
+}
+
+[data-eye-comfort="sepia"] .text-slate-400 {
+  color: #8c7b6d !important;
+}
+
+[data-eye-comfort="sepia"] .bg-emerald-50,
+[data-eye-comfort="sepia"] .bg-emerald-100 {
+  background-color: #f6ecdc !important;
+}
+
+[data-eye-comfort="sepia"] .text-emerald-800,
+[data-eye-comfort="sepia"] .text-emerald-900 {
+  color: #6f3e15 !important;
+}
+
+[data-eye-comfort="sepia"] .bg-emerald-600,
+[data-eye-comfort="sepia"] .bg-emerald-500 {
+  background-color: #875525 !important;
+}
+
+/* 3. SOFT NIGHT THEME (MATTE DARK OLIVE - ZERO GLARE IN DARKNESS) */
+[data-eye-comfort="night"] {
+  --color-canvas: #1b231e;
+  --color-card: #242e28;
+  --color-card-sub: #1e2621;
+  --color-border: #334037;
+  --color-text-main: #e2e8e4;
+  --color-text-muted: #95a59b;
+}
+
+[data-eye-comfort="night"] .bg-white {
+  background-color: #242d27 !important;
+  color: #e2e8e4 !important;
+}
+
+[data-eye-comfort="night"] .border-slate-200,
+[data-eye-comfort="night"] .border-slate-200\/80,
+[data-eye-comfort="night"] .border-slate-200\/90,
+[data-eye-comfort="night"] .border-slate-100 {
+  border-color: #334038 !important;
+}
+
+[data-eye-comfort="night"] .bg-slate-50 {
+  background-color: #1a221d !important;
+  color: #e2e8e4 !important;
+}
+
+[data-eye-comfort="night"] .bg-slate-100 {
+  background-color: #161c18 !important;
+}
+
+[data-eye-comfort="night"] .text-slate-800,
+[data-eye-comfort="night"] .text-slate-900 {
+  color: #e2e8e4 !important;
+}
+
+[data-eye-comfort="night"] .text-slate-700 {
+  color: #cbd5cf !important;
+}
+
+[data-eye-comfort="night"] .text-slate-500 {
+  color: #92a298 !important;
+}
+
+[data-eye-comfort="night"] .text-slate-400 {
+  color: #728277 !important;
+}
+
+[data-eye-comfort="night"] select {
+  background-color: #1a221d !important;
+  color: #e2e8e4 !important;
+}
+
+[data-eye-comfort="night"] select option {
+  background-color: #242d27 !important;
+  color: #e2e8e4 !important;
+}

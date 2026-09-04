@@ -100,6 +100,8 @@ export interface FeedbackReply {
 
 export type ViewMode = 'app' | 'web';
 
+export type EyeComfortMode = 'sage' | 'sepia' | 'night';
+
 export interface OneMotoringCamera {
   id: string; // '2701' | '2702' | '2704' | '4703' | '4712' | '4713'
   checkpoint: 'woodlands' | 'tuas';
@@ -130,4 +132,90 @@ export interface CommunityFeedbackItem {
   hasUpvoted?: boolean;
   replies: FeedbackReply[];
   isPinned?: boolean;
+  disqusLinked?: boolean;
+  disqusThreadId?: string;
+  disqusUrl?: string;
 }
+
+export interface DisqusHealthStatus {
+  status: 'healthy' | 'degraded' | 'offline';
+  operational: boolean;
+  shortname: string;
+  forumUrl: string;
+  embedScript: string;
+  countScript: string;
+  threadIdentifier: string;
+  pageUrl: string;
+  pageTitle: string;
+  latencyMs: number;
+  uptimePercentage: string;
+  lastChecked: string;
+  commentsLinked: boolean;
+  bridgeMode: string;
+}
+
+// =========================================================================
+// DISQUS JAVASCRIPT & TYPESCRIPT COMPATIBILITY TYPES
+// =========================================================================
+
+export interface DisqusConfigPage {
+  identifier?: string;
+  url?: string;
+  title?: string;
+  category_id?: string;
+}
+
+export interface DisqusCommentEvent {
+  id: string;
+  text?: string;
+  parent?: string;
+  author?: {
+    name?: string;
+    username?: string;
+    avatar?: { small?: { permalink?: string } };
+  };
+}
+
+export interface DisqusCallbacks {
+  onNewComment?: Array<(comment: DisqusCommentEvent) => void>;
+  onReady?: Array<() => void>;
+  onPaginate?: Array<() => void>;
+  onIdentify?: Array<(user: any) => void>;
+}
+
+export interface DisqusConfigContext {
+  page: DisqusConfigPage;
+  callbacks?: DisqusCallbacks;
+  language?: string;
+}
+
+export interface DisqusResetOptions {
+  reload: boolean;
+  config?: (this: DisqusConfigContext) => void;
+}
+
+export interface DisqusWindowGlobal {
+  reset: (options: DisqusResetOptions) => void;
+  host?: {
+    _loadEmbed?: () => void;
+  };
+}
+
+export interface DisqusWidgetsGlobal {
+  displayCount?: (data: any) => void;
+  getCount?: (options?: { reset?: boolean }) => void;
+}
+
+declare global {
+  interface Window {
+    DISQUS?: DisqusWindowGlobal;
+    DISQUSWIDGETS?: DisqusWidgetsGlobal;
+    disqus_config?: (this: DisqusConfigContext) => void;
+    disqus_shortname?: string;
+    disqus_identifier?: string;
+    disqus_url?: string;
+    disqus_title?: string;
+  }
+}
+
+

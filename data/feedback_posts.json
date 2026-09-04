@@ -1,1 +1,21 @@
-[]
+[
+  {
+    "id": "fb-1788497309908-5os0u",
+    "author": "Crystal L.",
+    "role": "Daily Commuter",
+    "avatarColor": "bg-purple-600",
+    "category": "carpool_route",
+    "categoryLabel": "💬 General Commuter Chat & Feedback",
+    "routeTag": "Woodlands ⇄ Austin Heights",
+    "content": "Looking for morning carpool from Woodlands to Mount Austin JB on weekdays!",
+    "timestamp": "Today at 4:48 am (4 Sept)",
+    "createdAt": 1788497309908,
+    "upvotes": 1,
+    "hasUpvoted": true,
+    "replies": [],
+    "isPinned": false,
+    "disqusLinked": true,
+    "disqusThreadId": "sweelah-talk-to-us",
+    "disqusUrl": "https://sweelah.app/talk-to-us"
+  }
+]
